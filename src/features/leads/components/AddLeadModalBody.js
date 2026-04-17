@@ -1,87 +1,99 @@
-import { useState } from "react"
-import { useDispatch } from "react-redux"
-import InputText from '../../../components/Input/InputText'
-import ErrorText from '../../../components/Typography/ErrorText'
-import { showNotification } from "../../common/headerSlice"
-import { addNewLead } from "../leadSlice"
-import axios from "axios"
+import { useState } from "react";
+import ErrorText from '../../../components/Typography/ErrorText';
+import { useDispatch } from "react-redux";
+import { addNewLead } from "../leadSlice";
+import { showNotification } from "../../common/headerSlice";
+import api from '../../../axios';
 
 const INITIAL_LEAD_OBJ = {
-    client_name : "",
-    project_name : "",
-    project_manager : ""
-}
+    projectName: "",
+    clientName: "",
+    projectManager: "",
+    projectCode: ""
+};
 
-function AddLeadModalBody({closeModal}){
-    const dispatch = useDispatch()
-    const [loading, setLoading] = useState(false)
-    const [errorMessage, setErrorMessage] = useState("")
-    const [leadObj, setLeadObj] = useState(INITIAL_LEAD_OBJ)
+function AddLeadModalBody({ closeModal }) {
+    const dispatch = useDispatch();
+    const [leadObj, setLeadObj] = useState(INITIAL_LEAD_OBJ);
+    const [errorMessage, setErrorMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
+    const handleInputChange = (e, fieldName) => {
+        setErrorMessage("");
+        setLeadObj({ ...leadObj, [fieldName]: e.target.value });
+    };
 
-    const saveNewLead = async (e) => {
+    const saveNewLead = async () => {
+        if (!leadObj.projectName || !leadObj.clientName || !leadObj.projectManager || !leadObj.projectCode) {
+            setErrorMessage("All fields are required!");
+            return;
+        }
 
-        // e.preventDefault()
-        setErrorMessage("")
-        // if(leadObj.project_name.trim() === "")return setErrorMessage("Project Name is required!")
-        // else if(leadObj.project_manager.trim() === "")return setErrorMessage("Project Manager is required!")
-        // else if(leadObj.email.trim() === "")return setErrorMessage("Client Name is required!")
-        // else{
-            let newLeadObj = {
-                "id": 7,
-                "clientName": leadObj.client_name,
-                "projectName": leadObj.project_name,
-                "projectManager": leadObj.project_manager,
-                "projectDetail": '-',
-                "projectCode": leadObj.project_name,
-            }
-            // dispatch(addNewLead({newLeadObj}))
-            setLoading(true)
-            // await csrfToken();
-            try {
-                const resp = await axios.post('/addProject', newLeadObj);
-                if (resp.status === 200) {
-                    setLoading(false)
-                    dispatch(showNotification({message : "New Project Added!", status : 1}))
-                }
-            } catch (error) {
-                if (error.response.status === 401) {
-                    setLoading(false)
-                    setErrorMessage(error.response.data.message);
-                } else if (error.response.status === 400 ) {
-                    setLoading(false)
-                    setErrorMessage(error.response.data.message);
-                } else {
-                    setLoading(false)
-                    setErrorMessage(error.response.data.message);
-                }
-            }
-            closeModal()
-        // }
-    }
+        setLoading(true);
 
-    const updateFormValue = ({updateType, value}) => {
-        setErrorMessage("")
-        setLeadObj({...leadObj, [updateType] : value})
-    }
+        try {
+            // This now ONLY sends the 4 columns that exist in your database!
+            const resp = await api.post('/projects', leadObj); 
+            dispatch(addNewLead({ newLeadObj: resp.data.project }));
+            dispatch(showNotification({ message: "New Project Added!", status: 1 }));
+            closeModal();
+        } catch (err) {
+            setErrorMessage(err.response?.data?.message || "Failed to add project");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    return(
+    return (
         <>
+            <div className="form-control w-full mt-4">
+                <label className="label"><span className="label-text">Project Name</span></label>
+                <input 
+                    type="text" 
+                    className="input input-bordered w-full" 
+                    value={leadObj.projectName} 
+                    onChange={(e) => handleInputChange(e, 'projectName')} 
+                />
+            </div>
 
-            <InputText type="text" defaultValue={leadObj.project_name} updateType="project_name" containerStyle="mt-4" labelTitle="Project Name" updateFormValue={updateFormValue}/>
+            <div className="form-control w-full mt-4">
+                <label className="label"><span className="label-text">Project Manager</span></label>
+                <input 
+                    type="text" 
+                    className="input input-bordered w-full" 
+                    value={leadObj.projectManager} 
+                    onChange={(e) => handleInputChange(e, 'projectManager')} 
+                />
+            </div>
 
-            <InputText type="text" defaultValue={leadObj.project_manager} updateType="project_manager" containerStyle="mt-4" labelTitle="Project Manager Name" updateFormValue={updateFormValue}/>
+            <div className="form-control w-full mt-4">
+                <label className="label"><span className="label-text">Client Name</span></label>
+                <input 
+                    type="text" 
+                    className="input input-bordered w-full" 
+                    value={leadObj.clientName} 
+                    onChange={(e) => handleInputChange(e, 'clientName')} 
+                />
+            </div>
 
-            <InputText type="email" defaultValue={leadObj.client_name} updateType="client_name" containerStyle="mt-4" labelTitle="Client Name" updateFormValue={updateFormValue}/>
+            <div className="form-control w-full mt-4">
+                <label className="label"><span className="label-text">Project Code</span></label>
+                <input 
+                    type="text" 
+                    className="input input-bordered w-full" 
+                    value={leadObj.projectCode} 
+                    onChange={(e) => handleInputChange(e, 'projectCode')} 
+                />
+            </div>
 
+            <ErrorText styleClass="mt-4">{errorMessage}</ErrorText>
 
-            <ErrorText styleClass="mt-16">{errorMessage}</ErrorText>
-            <div className="modal-action">
-                <button  className="btn btn-ghost" onClick={() => closeModal()}>Cancel</button>
-                <button  className="btn btn-primary px-6" onClick={() => saveNewLead()}>Save</button>
+            <div className="modal-action mt-4">
+                <button className="btn btn-ghost" onClick={closeModal} type="button">Cancel</button>
+                <button className={`btn btn-primary px-6 ${loading ? 'loading' : ''}`} onClick={saveNewLead} type="button">Save</button>
             </div>
         </>
-    )
+    );
 }
 
-export default AddLeadModalBody
+export default AddLeadModalBody;

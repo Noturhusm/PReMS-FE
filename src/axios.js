@@ -1,13 +1,15 @@
-import Axios from 'axios';
+import axios from "axios";
 
-const axios = Axios.create({
-	baseURL: "http://localhost:8000/api",
-	withCredentials: true,
-	headers: {
-		"Content-Type": "application/json",
-		"Accept": "application/json",
-        "Authorization": "Bearer ".$accessToken
-	},
+const api = axios.create({
+  baseURL: "http://localhost:8000/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-export default axios;
+const token = localStorage.getItem("token");
+if (token) {
+  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+}
+
+export default api;

@@ -1,122 +1,144 @@
-import moment from "moment"
-import { useEffect, setState, useState } from "react"
-import { useDispatch, useSelector, Loading} from "react-redux"
-import TitleCard from "../../../components/Cards/TitleCard"
-import { showNotification } from '../../common/headerSlice'
-import InputText from '../../../components/Input/InputText'
-import TextAreaInput from '../../../components/Input/TextAreaInput'
-import ToogleInput from '../../../components/Input/ToogleInput'
-import {useLocation} from 'react-router-dom';
+import { useEffect, useState, useCallback } from "react";
+import { useDispatch } from "react-redux";
+import TitleCard from "../../../components/Cards/TitleCard";
+import InputText from '../../../components/Input/InputText';
+import TextAreaInput from '../../../components/Input/TextAreaInput';
+import { useParams } from 'react-router-dom';
+import FileUploader from "./components/Upload"; // 👈 Ensure this matches your filename
 
-function ProjectDetails(){
+function ProjectDetails() {
+    const { id } = useParams(); 
 
-    const loadingStatus= true;
-    const dispatch = useDispatch()
-    const location = useLocation();
-    const [data, setData] = useState([]);
-    const [startDate] = useState("-");
-    const [endDate] = useState("-");
-    const [projectCode] = useState("-");
-    const [type] = useState("-"); 
-    const [category] = useState("-");
-    const [cost] = useState("-");
-    const [description] = useState("-");
-    const [status] = useState("-");
+    const [formData, setFormData] = useState({
+        startDate: "",
+        endDate: "",
+        projectCode: "",
+        type: "-",
+        category: "-",
+        cost: "-",
+        description: "-",
+        status: "Planned",
+        teamMembers: "-",
+        documents: []
+    });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // location.state.id
-              const token = localStorage.getItem('token')
-  
-              fetch('https://presm-be.vercel.app/api/api/getProjectDetail/'+location.state.id)
-              .then(response => response.json())
-              .then(data => setData(data))
-              .catch(error => console.log(error));
+    const fetchData = useCallback(async () => {
+    if (!id) return;
+    const token = localStorage.getItem('token');
 
-              this.setState ({
-                projectCode : data[0].projectCode,
-                description: data[0].projectDetail,
-              });
-            } catch (error) {
-              console.log('An error occurred while fetching data:', error);
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/api/projects/${id}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}` 
             }
-          };
-            // Optionally, you can set a polling interval to fetch data continuously
-            const interval = setInterval(() => {
-                fetchData();
-            }, 5000); // Fetch data every 5 seconds
-        
-            // Clean up the interval when the component is unmounted
-            return () => clearInterval(interval);
-      }, []);
+        });
 
-    // Call API to update
-    const updateProfile = () => {
-        dispatch(showNotification({message : "Project Details Updated", status : 1}))
-        
-    }
+        // 1. Rename 'data' to 'project' here 👈
+        const project = await response.json(); 
 
-    const uploadfile = () => {
-        try {
-            dispatch(showNotification({message : "Project File Uploaded", status : 1}))
-            
-        } catch (error) {
-            dispatch(showNotification({message : "An Error Had Occurred", status : 0}))
-           
+        // 2. Check if project exists and has an ID
+        if (project && project.id) {
+            setFormData({
+                // Now these 'project.xxx' references will work perfectly!
+                startDate: project.created_at ? project.created_at.split(/[ T]/)[0] : "",
+                endDate: project.project_end_date || "",
+                projectCode: project.projectCode || "", 
+                type: project.projectType || "-", 
+                category: project.projectCategory || "-", 
+                cost: project.projectCost || "-", 
+                description: project.projectDetail || "",
+                status: project.status || "Planned",
+                teamMembers: project.projectManager || "", 
+                documents: project.documents || [] 
+            });
         }
+    } catch (error) {
+        console.error("Fetch error:", error);
     }
+}, [id]);
 
-    const updateFormValue = ({updateType, value}) => {
-        console.log(updateType)
-    }
 
-    return(
-        <>
-            <TitleCard title="Project Details" topMargin="mt-2">
-            
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputText labelTitle="Project Start Date" defaultValue={startDate} updateFormValue={updateFormValue}/>
-                        <InputText labelTitle="Project End Date" defaultValue={endDate} updateFormValue={updateFormValue}/>
-                        <InputText labelTitle="Project Code" defaultValue={location.state.id ?? "-"} updateFormValue={updateFormValue}>{location.state.id}</InputText>
-                        <InputText labelTitle="Project Type" defaultValue={type} updateFormValue={updateFormValue}/>
-                        <InputText labelTitle="Project Category" defaultValue={category} updateFormValue={updateFormValue}/>
-                        <InputText labelTitle="Project Cost" defaultValue={cost} updateFormValue={updateFormValue}/>
-                        <TextAreaInput labelTitle="Project Description" defaultValue={useState.description} updateFormValue={updateFormValue}/>
-                        <labelTitle labelTitle="Project Status" defaultValue={status}></labelTitle>
-                    </div>
-                    <div className="divider" ></div>
+const updateFormValue = ({ updateType, value }) => {
+    setFormData(prev => ({ ...prev, [updateType]: value }));
+};
+    return (
+        <TitleCard title="Project Details" topMargin="mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputText labelTitle="Project Start Date" type="date" defaultValue={formData.startDate} updateFormValue={({ value }) => updateFormValue({ updateType: "startDate", value })} />
+                <InputText labelTitle="Project End Date" type="date" defaultValue={formData.endDate} updateFormValue={({ value }) => updateFormValue({ updateType: "endDate", value })} />
+                <InputText key={formData.projectCode} labelTitle="Project Code" defaultValue={formData.projectCode} updateFormValue={({ value }) => updateFormValue({ updateType: "projectCode", value })} />
+                <InputText labelTitle="Project Type" defaultValue={formData.type} updateFormValue={({ value }) => updateFormValue({ updateType: "type", value })} />
+                <InputText labelTitle="Project Category" defaultValue={formData.category} updateFormValue={({ value }) => updateFormValue({ updateType: "category", value })} />
+                <InputText labelTitle="Project Cost" defaultValue={formData.cost} updateFormValue={({ value }) => updateFormValue({ updateType: "cost", value })} />
+                <TextAreaInput labelTitle="Project Description" defaultValue={formData.description} updateFormValue={({ value }) => updateFormValue({ updateType: "description", value })} />
+                
+                <div>
+                    <span className="label-text text-base-content font-semibold">Project Status</span>
+                    <select className="select select-bordered w-full mt-2" value={formData.status} onChange={(e) => updateFormValue({ updateType: "status", value: e.target.value })}>
+                        <option value="Planned">Planned</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <TextAreaInput labelTitle="Project Team Members" defaultValue="-" updateFormValue={updateFormValue}/>
-                    </div>
-                    <div className="divider" ></div>
+            <div className="divider"></div>
+            <TextAreaInput labelTitle="Project Team Members" defaultValue={formData.teamMembers} updateFormValue={({ value }) => updateFormValue({ updateType: "teamMembers", value })} />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <input type="file" className="file-input file-input-bordered file-input-primary w-full max-w-xs" />
-                        <div className="mt-16"><button className="btn btn-primary float-right" onClick={() => uploadfile()}>Upload</button></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="overflow-x-auto">
-                            <table className="table">
-                                {/* head */}
-                                <thead>
-                                <tr>
-                                    <th>No.</th>
-                                    <th> Document Name</th>
-                                    <th> Date</th>
-                                    <th></th>
-                                </tr>
-                                </thead>
-                            </table>
-                        </div>
-                    </div>
+            <div className="divider"></div>
 
-                    <div className="mt-16"><button className="btn btn-primary float-right" onClick={() => updateProfile()}>Update</button></div>
-            </TitleCard>
-        </>
-    )
+            {/* DOCUMENT SECTION */}
+            <div className="mt-4">
+                <div className="max-w-md">
+                    <FileUploader 
+                        label="Project Documents"
+                        url={`http://127.0.0.1:8000/api/projects/${id}/upload`}
+                        allowMultiple={true}
+                        onSuccess={fetchData} // Refresh table on success
+                    />
+                </div>
+
+                <table className="table w-full">
+        <thead>
+            <tr>
+                <th>Document Name</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {/* If documents exist, map them. Otherwise show 'No documents found' */}
+            {formData.documents && formData.documents.length > 0 ? (
+                formData.documents.map((doc, index) => (
+                    <tr key={index}>
+                        <td>{doc.file_name}</td>
+                        <td>{new Date(doc.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button 
+                            className="btn btn-xs btn-ghost text-primary"
+                            onClick={() => window.open(`http://127.0.0.1:8000/storage/${doc.file_path}`, '_blank')}
+                            >
+                            View
+                            </button>
+                        </td>
+                    </tr>
+                ))
+            ) : (
+                <tr>
+                    <td colSpan="3" className="text-center">No documents found.</td>
+                </tr>
+            )}
+        </tbody>
+    </table>
+            </div>
+
+            <div className="mt-16 flex justify-end">
+                <button className="btn btn-primary">Update Details</button>
+            </div>
+        </TitleCard>
+    );
 }
 
-
-export default ProjectDetails
+export default ProjectDetails;

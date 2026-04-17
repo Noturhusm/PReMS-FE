@@ -1,63 +1,91 @@
-import { useState } from "react"
-import { useDispatch } from "react-redux"
-import InputText from '../../../components/Input/InputText'
-import ErrorText from '../../../components/Typography/ErrorText'
-import { showNotification } from "../../common/headerSlice"
-import { addNewLead } from "../leadSlice"
+import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { showNotification } from "features/common/headerSlice";
+import api from "../../axios";
 
-const INITIAL_LEAD_OBJ = {
-    client_name : "",
-    project_name : "",
-    project_manager : ""
-}
+const AddLeadModalBody = ({ closeModal, projectToEdit, refreshProjects }) => {
+  const [projectName, setProjectName] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [projectCode, setProjectCode] = useState("");
+  const dispatch = useDispatch();
 
-function AddLeadModalBody({closeModal}){
-    const dispatch = useDispatch()
-    const [loading, setLoading] = useState(false)
-    const [errorMessage, setErrorMessage] = useState("")
-    const [leadObj, setLeadObj] = useState(INITIAL_LEAD_OBJ)
-
-
-    const saveNewLead = () => {
-        // if(leadObj.project_name.trim() === "")return setErrorMessage("Project Name is required!")
-        // else if(leadObj.project_manager.trim() === "")return setErrorMessage("Project Manager is required!")
-        // else if(leadObj.email.trim() === "")return setErrorMessage("Client Name is required!")
-        // else{
-            let newLeadObj = {
-                "id": 7,
-                "client_name": leadObj.client_name,
-                "project_name": leadObj.project_name,
-                "project_manager": leadObj.project_manager,
-                "avatar": "https://reqres.in/img/faces/1-image.jpg"
-            }
-            dispatch(addNewLead({newLeadObj}))
-            dispatch(showNotification({message : "New Project Added!", status : 1}))
-            closeModal()
-        // }
+  useEffect(() => {
+    if (projectToEdit) {
+      setProjectName(projectToEdit.projectName || "");
+      setClientName(projectToEdit.clientName || "");
+      setProjectCode(projectToEdit.projectCode || "");
+    } else {
+      setProjectName("");
+      setClientName("");
+      setProjectCode("");
     }
+  }, [projectToEdit]);
 
-    const updateFormValue = ({updateType, value}) => {
-        setErrorMessage("")
-        setLeadObj({...leadObj, [updateType] : value})
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (projectToEdit) {
+        // Update existing project
+        await api.put(`/projects/${projectToEdit.id}`, {
+          projectName,
+          clientName,
+          projectCode,
+        });
+        dispatch(showNotification({ message: "Project updated!", status: 1 }));
+      } else {
+        // Add new project
+        await api.post("/projects", { projectName, clientName, projectCode });
+        dispatch(showNotification({ message: "Project added!", status: 1 }));
+      }
+
+      refreshProjects(); // Refresh project list
+      closeModal();      // Close modal
+    } catch (error) {
+      console.error("Failed to save project:", error);
+      dispatch(showNotification({ message: "Failed to save project", status: 0 }));
     }
+  };
 
-    return(
-        <>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label>Project Name</label>
+        <input
+          type="text"
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          required
+          className="input input-bordered w-full"
+        />
+      </div>
+      <div>
+        <label>Client Name</label>
+        <input
+          type="text"
+          value={clientName}
+          onChange={(e) => setClientName(e.target.value)}
+          required
+          className="input input-bordered w-full"
+        />
+      </div>
+      <div>
+        <label>Project Code</label>
+        <input
+          type="text"
+          value={projectCode}
+          onChange={(e) => setProjectCode(e.target.value)}
+          required
+          className="input input-bordered w-full"
+        />
+      </div>
+      <div className="flex justify-end space-x-2">
+        <button type="button" className="btn btn-outline" onClick={closeModal}>Cancel</button>
+        <button type="submit" className="btn btn-primary">
+          {projectToEdit ? "Update" : "Save"}
+        </button>
+      </div>
+    </form>
+  );
+};
 
-            <InputText type="text" defaultValue={leadObj.project_name} updateType="project_name" containerStyle="mt-4" labelTitle="Project Name" updateFormValue={updateFormValue}/>
-
-            <InputText type="text" defaultValue={leadObj.project_manager} updateType="project_manager" containerStyle="mt-4" labelTitle="Project Manager Name" updateFormValue={updateFormValue}/>
-
-            <InputText type="email" defaultValue={leadObj.client_name} updateType="client_name" containerStyle="mt-4" labelTitle="Client Name" updateFormValue={updateFormValue}/>
-
-
-            <ErrorText styleClass="mt-16">{errorMessage}</ErrorText>
-            <div className="modal-action">
-                <button  className="btn btn-ghost" onClick={() => closeModal()}>Cancel</button>
-                <button  className="btn btn-primary px-6" onClick={() => saveNewLead()}>Save</button>
-            </div>
-        </>
-    )
-}
-
-export default AddLeadModalBody
+export default AddLeadModalBody;

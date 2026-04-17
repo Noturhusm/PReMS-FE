@@ -1,6 +1,7 @@
 // All components mapping with path for internal routes
 
 import { lazy } from 'react'
+
 //Protected pages 
 const Dashboard = lazy(() => import('../pages/protected/Dashboard'))
 const Welcome = lazy(() => import('../pages/protected/Welcome'))
@@ -35,44 +36,23 @@ const routes = [
     component: Welcome, // view rendered
   },
   {
-    path: '/project-list',
+   path: '/project-details/:id', // This pairs with "/app" to become "/app/project-details"
+    component: ProjectDetails,},
+  {
+    path: '/project', // 
     component: ProjectLists,
-  },
-  {
-    path: '/project-details',
-    component: ProjectDetails,
-  },
-  {
-    path: '/settings-team',
-    component: Team,
   },
   {
     path: '/calendar',
     component: Calendar,
   },
   {
+    path: '/analytics', // 👈 This makes clicking "Analytics" in the sidebar work!
+    component: Charts,
+  },
+  {
     path: '/transactions',
     component: Transactions,
-  },
-  {
-    path: '/settings-profile',
-    component: ProfileSettings,
-  },
-  {
-    path: '/settings-billing',
-    component: Bills,
-  },
-  {
-    path: '/getting-started',
-    component: GettingStarted,
-  },
-  {
-    path: '/features',
-    component: DocFeatures,
-  },
-  {
-    path: '/components',
-    component: DocComponents,
   },
   {
     path: '/integration',
@@ -90,13 +70,59 @@ const routes = [
     path: '/blank',
     component: Blank,
   },
+  
+  // --------------------------------------------------------------------------
+  // Settings Submenu Routes (Aligned with your sidebar links)
+  // --------------------------------------------------------------------------
   {
-    path: '/settings',
+    path: '/settings/profile', //  Matches your sidebar link
+    component: ProfileSettings,
+  },
+  {
+    path: '/settings/billing', //  Matches your sidebar link
+    component: Bills,
+  },
+  {
+    path: '/settings/team', //  Changed from /settings-team to match sidebar
+    component: Team,
+  },
+  {
+    path: '/settings/general', //  Matches your sidebar link
     component: Settings,
   },
   {
-    path: '/system-settings',
+    path: '/settings/system', //  Changed from /system/settings to /settings/system
     component: SystemSettings,
+  },
+
+
+  // --------------------------------------------------------------------------
+  // Settings & Profile Routes
+  // --------------------------------------------------------------------------
+ // Fix for Profile Settings dropdown
+  {
+    path: '/profile-settings', 
+    component: ProfileSettings,
+  },
+
+  // Fix for Bill History dropdown
+  {
+    path: '/bill-history', 
+    component: Bills,
+  },
+
+  // Open pages
+  {
+    path: '/getting-started',
+    component: GettingStarted,
+  },
+  {
+    path: '/features',
+    component: DocFeatures,
+  },
+  {
+    path: '/components',
+    component: DocComponents,
   },
 ]
 

@@ -1,47 +1,29 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import axios from 'axios'
+import { createSlice } from '@reduxjs/toolkit';
 
+const initialState = {
+    leads: []
+};
 
-
-export const getLeadsContent = createAsyncThunk('/leads/content', async () => {
-	const response = await axios.get('/api/users?page=2', {})
-	return response.data;
-})
-
-export const leadsSlice = createSlice({
-    name: 'leads',
-    initialState: {
-        isLoading: false,
-        leads : []
-    },
+export const leadSlice = createSlice({
+    name: 'lead',
+    initialState,
     reducers: {
-
-
-        addNewLead: (state, action) => {
-            let {newLeadObj} = action.payload
-            state.leads = [...state.leads, newLeadObj]
+        setLeads: (state, action) => {
+            state.leads = action.payload;
         },
-
+        addNewLead: (state, action) => {
+            state.leads.push(action.payload);
+        },
         deleteLead: (state, action) => {
-            let {index} = action.payload
-            state.leads.splice(index, 1)
+            state.leads = state.leads.filter(lead => {
+                const leadCode = lead.project_code || lead.projectCode;
+                const actionCode = action.payload.project_code || action.payload.projectCode || action.payload;
+                
+                return leadCode !== actionCode;
+            });
         }
-    },
-
-    extraReducers: {
-		[getLeadsContent.pending]: state => {
-			state.isLoading = true
-		},
-		[getLeadsContent.fulfilled]: (state, action) => {
-			state.leads = action.payload.data
-			state.isLoading = false
-		},
-		[getLeadsContent.rejected]: state => {
-			state.isLoading = false
-		},
     }
-})
+});
 
-export const { addNewLead, deleteLead } = leadsSlice.actions
-
-export default leadsSlice.reducer
+export const { setLeads, addNewLead, deleteLead } = leadSlice.actions;
+export default leadSlice.reducer;

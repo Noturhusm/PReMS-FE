@@ -1,168 +1,100 @@
 "use client"
 import React, { useState, useRef } from "react"
-import { FaCheck, FaTimes } from "react-icons/fa"
+import { FaCheck, FaTimes, FaUpload } from "react-icons/fa"
+
+
 
 export default function FileUploader(props) {
-  const {
-    acceptedFileTypes,
-    url,
-    maxFileSize = 5,
-    allowMultiple = false,
-    label = "",
-    labelAlt = ""
-  } = props
-
-  const MAX_FILE_BYTES = maxFileSize * 1024 * 1024 // MB to bytes
-
-  // Change the state structure to handle multiple file progress and status
+  const { url, onSuccess, label, allowMultiple } = props
+  const [selectedFiles, setSelectedFiles] = useState([])
   const [fileProgress, setFileProgress] = useState({})
   const [fileStatus, setFileStatus] = useState({})
-  const [uploadError, setUploadError] = useState(null)
-  const [uploadSuccess, setUploadSuccess] = useState(false)
-
-  const isError = Object.values(fileStatus).some(
-    status => status !== "Uploaded"
-  )
-
-  // Create a ref for the file input
+  const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef(null)
 
-  const resetUploader = () => {
-    setFileProgress({})
-    setFileStatus({})
-    setUploadError(null)
-    setUploadSuccess(false)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+  const handleFileChange = (e) => {
+    if (e.target.files) {
+      setSelectedFiles(Array.from(e.target.files))
+      setFileProgress({})
+      setFileStatus({})
     }
   }
 
-  const fileSelectedHandler = event => {
-    setUploadError(null) // reset the upload error when a new file is selected
-    if (event.target.files) {
-      const files = Array.from(event.target.files)
-      let isValid = true // Flag to check if all files are valid
-      let fileErrors = {}
+  const startUpload = () => {
+  if (selectedFiles.length === 0) return;
+  setIsUploading(true);
 
-      for (const file of files) {
-        if (file.size > MAX_FILE_BYTES) {
-          fileErrors[file.name] = `File size cannot exceed ${maxFileSize} MB`
-          isValid = false
-        }
-        if (acceptedFileTypes && !acceptedFileTypes.includes(file.type)) {
-          fileErrors[file.name] =
-            "File type not accepted. Accepted types: " +
-            acceptedFileTypes.join(", ")
-          isValid = false
-        }
+  selectedFiles.forEach(file => {
+    const formData = new FormData();
+    formData.append("uploads", file);
+
+    // 1. ADD 'const' HERE 👈
+    const xhr = new XMLHttpRequest(); 
+    
+    xhr.open("POST", url, true);
+
+    const token = localStorage.getItem('token');
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Accept", "application/json");
+
+    xhr.upload.addEventListener("progress", e => {
+      if (e.lengthComputable) {
+        const progress = Math.round((e.loaded / e.total) * 100);
+        setFileProgress(prev => ({ ...prev, [file.name]: progress }));
       }
+    });
 
-      if (!isValid) {
-        setFileStatus(fileErrors)
-      } else {
-        files.forEach(file => {
-          setFileProgress(prev => ({ ...prev, [file.name]: 0 }))
-          fileUploadHandler(file)
-        })
-      }
-    }
-  }
-
-  const fileUploadHandler = file => {
-    const formData = new FormData()
-    formData.append("uploads", file)
-
-    const xhr = new XMLHttpRequest()
-    xhr.open("POST", url, true)
-
-    xhr.upload.addEventListener("progress", event => {
-      if (event.lengthComputable) {
-        const progress = Math.round((event.loaded / event.total) * 100)
-        setFileProgress(prev => ({ ...prev, [file.name]: progress }))
-      }
-    })
-
-    xhr.addEventListener("readystatechange", () => {
+    xhr.onreadystatechange = () => {
+      // 2. Because xhr is declared with 'const' above, 
+      // it is now available inside this function scope.
       if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          setFileStatus(prev => ({ ...prev, [file.name]: "Uploaded" }))
-          setUploadSuccess(true)
+        if (xhr.status === 200 || xhr.status === 201) {
+          setFileStatus(prev => ({ ...prev, [file.name]: "Uploaded" }));
+          setTimeout(() => {
+            if (onSuccess) onSuccess();
+            setSelectedFiles([]);
+            setIsUploading(false);
+          }, 1000);
         } else {
-          setFileStatus(prev => ({
-            ...prev,
-            [file.name]:
-              "An error occurred while uploading the file. Server response: " +
-              xhr.statusText
-          }))
+          setFileStatus(prev => ({ ...prev, [file.name]: "Failed" }));
+          setIsUploading(false);
         }
       }
-    })
-
-    xhr.send(formData)
-  }
+    };
+    
+    xhr.send(formData);
+  });
+};
 
   return (
-    <div className="flex flex-col gap-4 w-full h-60 md:h-48">
-      {uploadSuccess ? (
-        <div className="flex flex-col gap-2">
-          {isError ? (
-            <span className="text-xs text-red-500">
-              Upload completed, but with errors.
-            </span>
-          ) : (
-            <></>
-          )}
-          <div className="btn-group w-full">
-            <span className="btn btn-success w-1/2">Success!</span>
-            <button className="btn w-1/2" onClick={resetUploader}>
-              Upload Another
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="form-control w-full">
-          <label className="label">
-            <span className="label-text">{label}</span>
-            <span className="label-text-alt">{labelAlt}</span>
-          </label>
-          <input
-            type="file"
-            className="file-input file-input-bordered file-input-primary w-full"
-            onChange={fileSelectedHandler}
-            accept={acceptedFileTypes ? acceptedFileTypes.join(",") : undefined}
-            ref={fileInputRef}
-            // Added the 'multiple' attribute conditionally
-            multiple={allowMultiple}
-          />
-          <label className="label">
-            <span className="label-text-alt text-red-500">{uploadError}</span>
-          </label>
-        </div>
-      )}
+    <div className="w-full">
+      <label className="label pt-0"><span className="label-text font-semibold">{label}</span></label>
+      
+      <div className="flex gap-2">
+        <input 
+          type="file" 
+          className="file-input file-input-bordered file-input-primary file-input-sm w-full" 
+          onChange={handleFileChange} 
+          multiple={allowMultiple} 
+          ref={fileInputRef} 
+        />
+        {selectedFiles.length > 0 && !isUploading && (
+          <button className="btn btn-primary btn-sm" onClick={startUpload}>
+            <FaUpload className="mr-2" /> Upload
+          </button>
+        )}
+      </div>
 
-      <div className="overflow-x-auto flex gap-2 flex-col-reverse">
-        {Object.entries(fileProgress).map(([fileName, progress]) => (
-          <div key={fileName} className="text-xs flex flex-col gap-1">
-            <p>{fileName}</p>
-            <div className="flex items-center gap-2">
-              <progress
-                className="progress progress-primary w-full"
-                value={progress}
-                max="100"
-              />
-              {progress === 100 && (
-                <>
-                  {fileStatus[fileName] === "Uploaded" ? (
-                    <FaCheck className="text-xl text-green-500 mr-4" />
-                  ) : (
-                    <FaTimes className="text-xl text-red-500 mr-4" />
-                  )}
-                </>
-              )}
+      <div className="mt-2 space-y-2">
+        {Object.entries(fileProgress).map(([name, prog]) => (
+          <div key={name} className="text-xs border p-2 rounded bg-base-200">
+            <div className="flex justify-between mb-1">
+              <span className="truncate font-medium">{name}</span>
+              <span className={fileStatus[name] === "Uploaded" ? "text-success" : ""}>
+                {fileStatus[name] || `${prog}%`}
+              </span>
             </div>
-            <p className="text-red-500">
-              {fileStatus[fileName] !== "Uploaded" ? fileStatus[fileName] : ""}
-            </p>
+            <progress className="progress progress-primary w-full" value={prog} max="100" />
           </div>
         ))}
       </div>
