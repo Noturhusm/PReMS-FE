@@ -7,7 +7,7 @@ function InternalPage(){
     const dispatch = useDispatch()
 
     useEffect(() => {
-        dispatch(setPageTitle({ title : "System Settings"}))
+        dispatch(setPageTitle({ title : "Settings"}))
       }, [])
 
     return(

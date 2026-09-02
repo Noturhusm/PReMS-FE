@@ -69,7 +69,7 @@ function ProjectItem({ project, index, refreshProjects, openEditModal }) {
         </span>
       </td>
 
-      {/* 👇 6. Brand Aligned Action Buttons at the very end of the row! 👇 */}
+
       <td className="py-4 px-6 text-center">
         <div className="flex justify-center gap-2">
           <button

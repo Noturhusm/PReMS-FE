@@ -6,7 +6,7 @@ import { CALENDAR_EVENT_STYLE } from "./util";
 
 const THEME_BG = CALENDAR_EVENT_STYLE
 
-function CalendarView({calendarEvents, addNewEvent, openDayDetail}){
+function CalendarView({calendarEvents, addNewEvent, openDayDetail, onEventClick}){
 
     const today = moment().startOf('day')
     const weekdays = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -127,9 +127,10 @@ function CalendarView({calendarEvents, addNewEvent, openDayDetail}){
               <div key={idx} className={colStartClasses[moment(day).day().toString()] + " border border-solid w-full h-28  "}>
                 <p className={`inline-block flex items-center  justify-center h-8 w-8 rounded-full mx-1 mt-1 text-sm cursor-pointer hover:bg-base-300 ${isToday(day) && " bg-blue-100 dark:bg-blue-400 dark:hover:bg-base-300 dark:text-white"} ${isDifferentMonth(day) && " text-slate-400 dark:text-slate-600"}`} onClick={() => addNewEvent(day)}> { moment(day).format("D") }</p>
                 {
-                    getEventsForCurrentDate(day).map((e, k) => {
-                        return <p key={k} onClick={() => openAllEventsDetail(day, e.theme)} className={`text-xs px-2 mt-1 truncate  ${THEME_BG[e.theme] || ""}`}>{e.title}</p>
-                    })
+                  getEventsForCurrentDate(day).map((e, k) => {
+                    const clickHandler = (e && e.theme === "MORE") ? () => openAllEventsDetail(day, e.theme) : () => onEventClick && onEventClick(e)
+                    return <p key={k} onClick={clickHandler} className={`text-xs px-2 mt-1 truncate  ${THEME_BG[e.theme] || ""}`}>{e.title}</p>
+                  })
                 }
               </div>
             );

@@ -62,7 +62,7 @@ function SystemSettings(){
 
     return(
         <>
-             <TitleCard title="System Settings" topMargin="mt-2">
+             <TitleCard title="Settings" topMargin="mt-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <InputText labelTitle="Setting Key" defaultValue={sysSettingObj.settingKey} updateType="setting_key" updateFormValue={updateFormValue}/>
                         <InputText labelTitle="Setting Value" defaultValue={sysSettingObj.settingValue} updateType="setting_value" updateFormValue={updateFormValue}/>

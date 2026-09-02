@@ -12,7 +12,7 @@ const INITIAL_LEAD_OBJ = {
     projectCode: ""
 };
 
-function AddLeadModalBody({ closeModal }) {
+function AddLeadModalBody({ closeModal, refreshProjects }) {
     const dispatch = useDispatch();
     const [leadObj, setLeadObj] = useState(INITIAL_LEAD_OBJ);
     const [errorMessage, setErrorMessage] = useState("");
@@ -32,10 +32,19 @@ function AddLeadModalBody({ closeModal }) {
         setLoading(true);
 
         try {
-            // This now ONLY sends the 4 columns that exist in your database!
-            const resp = await api.post('/projects', leadObj); 
+            const payload = {
+                ...leadObj,
+                // Keep the UI to 4 fields while still satisfying the required DB column.
+                projectDetail: `${leadObj.projectName} - ${leadObj.clientName}`
+            };
+
+            const resp = await api.post('/projects', payload); 
             dispatch(addNewLead({ newLeadObj: resp.data.project }));
             dispatch(showNotification({ message: "New Project Added!", status: 1 }));
+            if (refreshProjects) {
+                await refreshProjects();
+            }
+            window.dispatchEvent(new Event("projects:reload"));
             closeModal();
         } catch (err) {
             setErrorMessage(err.response?.data?.message || "Failed to add project");

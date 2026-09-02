@@ -25,10 +25,11 @@ export default function FileUploader(props) {
   setIsUploading(true);
 
   selectedFiles.forEach(file => {
+    
     const formData = new FormData();
     formData.append("uploads", file);
 
-    // 1. ADD 'const' HERE 👈
+  
     const xhr = new XMLHttpRequest(); 
     
     xhr.open("POST", url, true);

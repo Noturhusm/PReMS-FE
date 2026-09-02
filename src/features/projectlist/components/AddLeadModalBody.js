@@ -5,6 +5,7 @@ import api from "../../axios";
 
 const AddLeadModalBody = ({ closeModal, projectToEdit, refreshProjects }) => {
   const [projectName, setProjectName] = useState("");
+  const [projectManager, setProjectManager] = useState("");
   const [clientName, setClientName] = useState("");
   const [projectCode, setProjectCode] = useState("");
   const dispatch = useDispatch();
@@ -12,10 +13,12 @@ const AddLeadModalBody = ({ closeModal, projectToEdit, refreshProjects }) => {
   useEffect(() => {
     if (projectToEdit) {
       setProjectName(projectToEdit.projectName || "");
+      setProjectManager(projectToEdit.projectManager || "");
       setClientName(projectToEdit.clientName || "");
       setProjectCode(projectToEdit.projectCode || "");
     } else {
       setProjectName("");
+      setProjectManager("");
       setClientName("");
       setProjectCode("");
     }
@@ -28,13 +31,21 @@ const AddLeadModalBody = ({ closeModal, projectToEdit, refreshProjects }) => {
         // Update existing project
         await api.put(`/projects/${projectToEdit.id}`, {
           projectName,
+          projectDetail: projectToEdit.projectDetail || `${projectName} - ${clientName}`,
+          projectManager,
           clientName,
           projectCode,
         });
         dispatch(showNotification({ message: "Project updated!", status: 1 }));
       } else {
         // Add new project
-        await api.post("/projects", { projectName, clientName, projectCode });
+        await api.post("/projects", {
+          projectName,
+          projectDetail: `${projectName} - ${clientName}`,
+          projectManager,
+          clientName,
+          projectCode
+        });
         dispatch(showNotification({ message: "Project added!", status: 1 }));
       }
 
@@ -54,6 +65,16 @@ const AddLeadModalBody = ({ closeModal, projectToEdit, refreshProjects }) => {
           type="text"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
+          required
+          className="input input-bordered w-full"
+        />
+      </div>
+      <div>
+        <label>Project Manager</label>
+        <input
+          type="text"
+          value={projectManager}
+          onChange={(e) => setProjectManager(e.target.value)}
           required
           className="input input-bordered w-full"
         />
