@@ -47,16 +47,16 @@ const TopSideButtons = ({removeFilter, applyFilter, applySearch, minAmount, maxA
             </button>
             <SearchBar searchText={searchText} styleClass="mr-4" setSearchText={setSearchText}/>
             {filterParam != "" && <button onClick={() => removeAppliedFilter()} className="btn btn-xs mr-2 btn-active btn-ghost normal-case">{filterParam}<XMarkIcon className="w-4 ml-2"/></button>}
-            <div className="dropdown dropdown-bottom dropdown-end">
+            <div className="dropdown dropdown-bottom dropdown-end relative z-50">
                 <label tabIndex={0} className="btn btn-sm btn-outline"><FunnelIcon className="w-5 mr-2"/>Filter</label>
-                <ul tabIndex={0} className="dropdown-content menu p-2 text-sm shadow bg-base-100 rounded-box w-52">
+                <ul tabIndex={0} className="dropdown-content menu p-2 text-sm shadow bg-base-100 rounded-box w-52 z-50">
                     {
                         locationFilters.map((l, k) => {
-                            return  <li key={k}><a onClick={() => showFiltersAndApply(l)}>{l}</a></li>
+                            return  <li key={k}><a className="hover:bg-base-300 hover:text-base-content" onClick={() => showFiltersAndApply(l)}>{l}</a></li>
                         })
                     }
                     <div className="divider mt-0 mb-0"></div>
-                    <li><a onClick={() => removeAppliedFilter()}>Remove Filter</a></li>
+                    <li><a className="hover:bg-base-300 hover:text-base-content" onClick={() => removeAppliedFilter()}>Remove Filter</a></li>
                 </ul>
             </div>
         </div>

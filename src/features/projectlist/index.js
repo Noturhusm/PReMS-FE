@@ -9,6 +9,7 @@ import { DocumentPlusIcon } from "@heroicons/react/16/solid";
 import { showNotification } from "../common/headerSlice";
 import { useNavigate } from "react-router-dom";
 import api from "../../axios";
+import SearchBar from "../../components/SearchBar";
 
 const TopSideButtons = () => {
   const dispatch = useDispatch();
@@ -22,6 +23,7 @@ const TopSideButtons = () => {
         Add New Project
       </button>
     </div>
+    <SearchBar searchText={searchText} styleClass="mr-4" setSearchText={setSearchText}/>
   );
 };
 
@@ -37,7 +39,14 @@ function ProjectListFeature() {
     try {
       const { data } = await api.get("/projects");
       // if paginated: data.data; else: data is array
-      setItems(Array.isArray(data) ? data : data.data || []);
+      const projects = Array.isArray(data) ? data : data.data || [];
+      setItems(projects.map((project) => ({
+        ...project,
+        id: project.project_id ?? project.id,
+        name: project.projectName ?? project.name,
+        manager_name: project.projectManager ?? project.manager_name,
+        status: project.projectStatus ?? project.status,
+      })));
     } catch (err) {
       console.error(err);
       dispatch(showNotification({ message: "Failed to load projects", status: 0 }));
@@ -49,6 +58,14 @@ function ProjectListFeature() {
   useEffect(() => {
     load();
 
+    useEffect(() => {
+        if(searchText == ""){
+            removeAppliedFilter()
+        }else{
+            applySearch(searchText)
+        }
+    }, [searchText])
+
     // optional: allow triggering a reload from elsewhere
     const onReload = () => load();
     window.addEventListener("projects:reload", onReload);
@@ -59,7 +76,7 @@ function ProjectListFeature() {
     // Optional: use your confirmation modal
     // dispatch(openModal({ title: "Confirmation", bodyType: MODAL_BODY_TYPES.CONFIRMATION, extraObject: { message: `Delete "${row.name}"?`, type: CONFIRMATION_MODAL_CLOSE_TYPES.LEAD_DELETE, index: row.id } }));
     try {
-      await api.delete(`/projects/${row.id}`);
+      await api.delete(`/projects/${row.projectCode}`);
       dispatch(showNotification({ message: "Project deleted", status: 1 }));
       load();
     } catch (err) {

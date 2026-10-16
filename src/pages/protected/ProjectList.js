@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { showNotification } from "features/common/headerSlice";
 import api from "../../axios"; // make sure path is correct
+import SearchBar from "../../components/Input/SearchBar";
 
 // 1. 👇 Add the router hook so we can change pages
 import { useNavigate } from "react-router-dom"; 
@@ -14,6 +15,7 @@ import AddLeadModalBody from "../../features/leads/components/AddLeadModalBody";
 
 function ProjectList() {
   const [projects, setProjects] = useState([]);
+  const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +27,11 @@ function ProjectList() {
     setLoading(true);
     try {
       const response = await api.get("/projects"); // Updated endpoint
-      setProjects(response.data || []);
+      const projectList = Array.isArray(response.data) ? response.data : response.data.data || [];
+      setProjects(projectList.map((project) => ({
+        ...project,
+        id: project.project_id ?? project.id,
+      })));
     } catch (error) {
       console.error("Failed to fetch projects", error);
       dispatch(showNotification({ message: "Failed to load projects", status: 0 }));
@@ -46,14 +52,36 @@ function ProjectList() {
     setIsModalOpen(false);
   };
 
+  const normalizedSearch = searchText.trim().toLowerCase();
+  const filteredProjects = projects.filter((project) =>
+    [
+      project.project_name,
+      project.projectName,
+      project.project_manager,
+      project.projectManager,
+      project.client_name,
+      project.clientName,
+      project.project_code,
+      project.projectCode,
+    ].some((value) => String(value ?? "").toLowerCase().includes(normalizedSearch))
+  );
+
   return (
-    <div className="p-6">
+    <div className="p-6 bg-base-100 rounded-lg shadow-xl">
     {/* This fixes the header text at the top */}
-    <div className="flex justify-between items-center mb-6">
+    <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
       <h1 className="text-2xl font-bold">Projects List</h1>
-      <button className="btn btn-primary px-6" onClick={openAddModal}>
-        Add New Project
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchBar
+          searchText={searchText}
+          setSearchText={setSearchText}
+          styleClass="w-64"
+          placeholderText="Search projects"
+        />
+        <button className="btn btn-primary px-6" onClick={openAddModal}>
+          Add New Project
+        </button>
+      </div>
     </div>
 
     {loading ? (
@@ -62,7 +90,7 @@ function ProjectList() {
       <div className="text-center py-4 text-gray-500">No projects found. Add one to get started!</div>
     ) : (
       /* A real table container to enforce columns */
-      <div className="overflow-x-auto w-full bg-white rounded-lg shadow">
+      <div className="overflow-x-auto w-full">
         <table className="table w-full">
           <thead>
             <tr className="bg-gray-100 border-b border-gray-200">
@@ -75,15 +103,21 @@ function ProjectList() {
           </tr>
           </thead>
           <tbody>
-            {projects.map((project, index) => (
+            {filteredProjects.length > 0 ? filteredProjects.map((project) => (
             <ProjectItem
               key={project.id || project.projectCode}
               project={project}
-              index={index} 
+              index={projects.indexOf(project)}
               refreshProjects={fetchProjects}  
               openEditModal={() => navigate(`/app/project-details/${project.id}`)} 
             />
-          ))}
+          )) : (
+            <tr>
+              <td colSpan={6} className="py-6 text-center text-gray-500">
+                No projects match your search.
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
       </div>

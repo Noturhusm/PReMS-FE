@@ -20,52 +20,61 @@ export default function FileUploader(props) {
     }
   }
 
-  const startUpload = () => {
-  if (selectedFiles.length === 0) return;
-  setIsUploading(true);
-
-  selectedFiles.forEach(file => {
-    
+  const uploadFile = (file) => new Promise((resolve, reject) => {
     const formData = new FormData();
     formData.append("uploads", file);
 
-  
-    const xhr = new XMLHttpRequest(); 
-    
+    const xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
 
-    const token = localStorage.getItem('token');
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    const token = localStorage.getItem("token");
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
     xhr.setRequestHeader("Accept", "application/json");
 
-    xhr.upload.addEventListener("progress", e => {
-      if (e.lengthComputable) {
-        const progress = Math.round((e.loaded / e.total) * 100);
-        setFileProgress(prev => ({ ...prev, [file.name]: progress }));
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        setFileProgress((previous) => ({ ...previous, [file.name]: progress }));
       }
     });
 
-    xhr.onreadystatechange = () => {
-      // 2. Because xhr is declared with 'const' above, 
-      // it is now available inside this function scope.
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200 || xhr.status === 201) {
-          setFileStatus(prev => ({ ...prev, [file.name]: "Uploaded" }));
-          setTimeout(() => {
-            if (onSuccess) onSuccess();
-            setSelectedFiles([]);
-            setIsUploading(false);
-          }, 1000);
-        } else {
-          setFileStatus(prev => ({ ...prev, [file.name]: "Failed" }));
-          setIsUploading(false);
-        }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
       }
     };
-    
+    xhr.onerror = () => reject(new Error("Upload network request failed"));
     xhr.send(formData);
   });
-};
+
+  const startUpload = async () => {
+    if (selectedFiles.length === 0 || isUploading) return;
+
+    setIsUploading(true);
+    let allUploaded = true;
+
+    for (const file of selectedFiles) {
+      try {
+        await uploadFile(file);
+        setFileStatus((previous) => ({ ...previous, [file.name]: "Uploaded" }));
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+        setFileStatus((previous) => ({ ...previous, [file.name]: "Failed" }));
+        allUploaded = false;
+      }
+    }
+
+    setIsUploading(false);
+
+    if (allUploaded) {
+      setSelectedFiles([]);
+      if (onSuccess) await onSuccess();
+    }
+  };
 
   return (
     <div className="w-full">
@@ -91,8 +100,8 @@ export default function FileUploader(props) {
           <div key={name} className="text-xs border p-2 rounded bg-base-200">
             <div className="flex justify-between mb-1">
               <span className="truncate font-medium">{name}</span>
-              <span className={fileStatus[name] === "Uploaded" ? "text-success" : ""}>
-                {fileStatus[name] || `${prog}%`}
+              <span className={fileStatus[name] === "Uploaded" ? "text-success" : fileStatus[name] === "Failed" ? "text-error" : ""}>
+                {fileStatus[name] === "Uploaded" ? <><FaCheck className="inline mr-1" />Uploaded</> : fileStatus[name] === "Failed" ? <><FaTimes className="inline mr-1" />Failed</> : `${prog}%`}
               </span>
             </div>
             <progress className="progress progress-primary w-full" value={prog} max="100" />

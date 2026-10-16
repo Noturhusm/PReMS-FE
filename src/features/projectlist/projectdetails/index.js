@@ -17,12 +17,12 @@ function ProjectDetails({ projectId }) {
         startDate: "",
         endDate: "",
         projectCode: "",
-        type: "-",
-        category: "-",
-        cost: "-",
-        description: "-",
-        status: "Planned",
-        teamMembers: "-",
+        type: "",
+        category: "",
+        cost: "",
+        description: "",
+        status: "",
+        teamMembers: "",
         documents: []
     });
 
@@ -32,15 +32,15 @@ function ProjectDetails({ projectId }) {
         try {
             const { data: project } = await api.get(`/projects/${id}`);
 
-            if (project && project.id) {
+            if (project && (project.project_id || project.id)) {
                 setFormData({
                     startDate: project.projectStartDate || project.project_start_date || (project.created_at ? project.created_at.split(/[ T]/)[0] : ""),
                     endDate: project.projectEndDate || project.project_end_date || "",
                     projectCode: project.projectCode || project.project_code || "",
-                    type: project.projectType || project.project_type || "-",
-                    category: project.projectCategory || project.project_category || "-",
+                    type: project.projectType || project.project_type || "",
+                    category: project.projectCategory || project.project_category || "",
                     cost: project.projectCost || project.project_cost || "-",
-                    description: project.projectDetail || "-",
+                    description: project.projectDetail ?? project.Project_description ?? "",
                     status: project.projectStatus || project.status || "Planned",
                     teamMembers: project.projectTeamMembers || project.project_team_members || project.projectManager || "-",
                     documents: Array.isArray(project.documents) ? project.documents : []
@@ -48,8 +48,9 @@ function ProjectDetails({ projectId }) {
             }
         } catch (error) {
             console.error("Fetch error:", error);
+            dispatch(showNotification({ message: "Failed to load project details", status: 0 }));
         }
-    }, [id]);
+    }, [dispatch, id]);
 
     useEffect(() => {
         fetchData();
@@ -116,16 +117,32 @@ function ProjectDetails({ projectId }) {
                     defaultValue={formData.projectCode}
                     updateFormValue={({ value }) => updateFormValue({ updateType: "projectCode", value })}
                 />
-                <InputText
-                    labelTitle="Project Type"
-                    defaultValue={formData.type}
-                    updateFormValue={({ value }) => updateFormValue({ updateType: "type", value })}
-                />
-                <InputText
-                    labelTitle="Project Category"
-                    defaultValue={formData.category}
-                    updateFormValue={({ value }) => updateFormValue({ updateType: "category", value })}
-                />
+                 <div>
+                    <span className="label-text text-base-content font-semibold">Project Type</span>
+                    <select
+                        className="select select-bordered mt-2 w-full"
+                        value={formData.type}
+                        onChange={(e) => updateFormValue({ updateType: "type", value: e.target.value })}
+                    >
+                        <option value="New Installation">New Installation</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Other">Other</option>
+
+                    </select>
+                </div>
+                <div>
+                    <span className="label-text text-base-content font-semibold">Project Category</span>
+                    <select
+                        className="select select-bordered mt-2 w-full"
+                        value={formData.category}
+                        onChange={(e) => updateFormValue({ updateType: "category", value: e.target.value })}
+                    >
+                        <option value="Residential">Residential</option>
+                        <option value="Commercial">Commercial</option>
+                        <option value="Industrial">Industrial</option>
+
+                    </select>
+                </div>
                 <InputText
                     labelTitle="Project Cost"
                     defaultValue={formData.cost}
@@ -182,21 +199,24 @@ function ProjectDetails({ projectId }) {
                     <tbody>
                         {formData.documents.length > 0 ? (
                             formData.documents.map((doc) => (
-                                <tr key={doc.id || doc.file_path}>
+                                <tr key={doc.document_id || doc.id || doc.file_path}>
                                     <td>{doc.file_name}</td>
                                     <td>{new Date(doc.created_at).toLocaleDateString()}</td>
                                     <td>
                                         <div className="flex gap-2">
                                             <button
                                                 className="btn btn-xs btn-ghost text-primary"
-                                                onClick={() => window.open(`http://127.0.0.1:8000/storage/${doc.file_path}`, "_blank")}
+                                                onClick={() => {
+                                                    const appUrl = api.defaults.baseURL.replace(/\/api\/?$/, "");
+                                                    window.open(`${appUrl}/storage/${doc.file_path}`, "_blank");
+                                                }}
                                                 type="button"
                                             >
                                                 View
                                             </button>
                                             <button
                                                 className="btn btn-xs btn-ghost text-error"
-                                                onClick={() => deleteDocument(doc.id)}
+                                                onClick={() => deleteDocument(doc.document_id || doc.id)}
                                                 type="button"
                                             >
                                                 Delete

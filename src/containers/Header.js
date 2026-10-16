@@ -35,14 +35,15 @@ function Header(){
 
     // 4. 👇 This scans your sidebar.js file whenever the URL changes!
     useEffect(() => {
-        // Find if the current browser URL matches any path in your sidebar
-        const currentRoute = routes.find(route => route.path === location.pathname);
-        
+        const allRoutes = routes.flatMap(route => [route, ...(route.submenu || [])]);
+        const currentRoute = allRoutes.find(route => route.path === location.pathname);
+
         if (currentRoute) {
             setPageTitle(currentRoute.name);
+        } else if (location.pathname === "/app/profile-settings") {
+            setPageTitle("Profile");
         } else {
-            // Fallback just in case a match isn't found
-            setPageTitle("Project"); 
+            setPageTitle("Project");
         }
     }, [location.pathname]); // Runs every time the user clicks a new page
 
